@@ -1,12 +1,13 @@
 require("./lui/init")
 
-local tabletop = require("./tabletop")
+local tabletop = require("./modules/tabletop")
+local save = require("./modules/save")
 
-local game = tabletop:new()
+local saved_game = save.load()
+local game = tabletop:new(saved_game)
 
 function lui.load()
-    game:generate_random_tile()
-    game:generate_random_tile()
+
 end
 
 function lui.update()
@@ -14,6 +15,9 @@ function lui.update()
 
     if lui.keyboard.is_key_down("q") then
         lui.running = false
+    end
+    if lui.keyboard.is_key_down("n") then
+        game:reset()
     end
 end
 

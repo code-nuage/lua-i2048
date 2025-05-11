@@ -12,12 +12,12 @@ return function()
     end
 
     local function run()
+        lui.graphics.clear()
         if type(lui.load) == "function" then
             lui.load()
         end
         while lui.running do
             if type(lui.draw) == "function" then
-                lui.graphics.clear()
                 lui.draw()
             end
             if type(lui.update) == "function" then
