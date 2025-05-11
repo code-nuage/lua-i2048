@@ -3,7 +3,7 @@ local save = require("./modules/save")
 local tabletop = {}
 tabletop.__index = tabletop
 
-local function slide_line(line)
+local function slide_line(self, line)
     local result = {}
     for i = 1, #line do
         if line[i] ~= 0 then
@@ -14,6 +14,7 @@ local function slide_line(line)
     while i <= #result do
         if result[i + 1] and result[i] == result[i + 1] then
             result[i] = result[i] * 2
+            self.score = self.score + result[i]  -- ← Incrément du score ici
             table.remove(result, i + 1)
         end
         i = i + 1
@@ -23,6 +24,7 @@ local function slide_line(line)
     end
     return result
 end
+
 
 local function center_string(str, width)
     local len = #str
@@ -35,24 +37,26 @@ local function center_string(str, width)
 end
 
 --+ CONSTRUCTOR +--
-function tabletop:new(save)
+function tabletop:new(s)
     local instance = setmetatable({}, tabletop)
 
     instance.direction = ""
-    if not save then
-        instance:generate_random_tile()
-        instance:generate_random_tile()
-    end
-    instance.table = save or {
+    instance.table = s.table or {
         {0, 0, 0, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     }
+    instance.score = s.score or 0
+    instance.high_score = s.high_score or 0
+    if not s then
+        instance:generate_random_tile()
+        instance:generate_random_tile()
+    end
     instance.colors = {
         [0]    = "\27[48;2;205;193;180m", -- #CDC1B4
         [2]    = "\27[48;2;238;228;218m", -- #EEE4DA
-        [4]    = "\27[48;2;237;224;200m", -- #EDE0C8
+        [4]    = "\27[48;2;254;218;166m", -- #EDE0C8
         [8]    = "\27[48;2;242;177;121m", -- #F2B179
         [16]   = "\27[48;2;245;149;99m",  -- #F59563
         [32]   = "\27[48;2;246;124;95m",  -- #F67C5F
@@ -101,7 +105,7 @@ function tabletop:move()
 
     if self.direction == "left" then
         for y = 1, 4 do
-            self.table[y] = slide_line(self.table[y])
+            self.table[y] = slide_line(self, self.table[y])
         end
     elseif self.direction == "right" then
         for y = 1, 4 do
@@ -109,7 +113,7 @@ function tabletop:move()
             for i = 4, 1, -1 do
                 table.insert(reversed, self.table[y][i])
             end
-            local result = slide_line(reversed)
+            local result = slide_line(self, reversed)
             for i = 1, 4 do
                 self.table[y][i] = result[5 - i]
             end
@@ -118,14 +122,14 @@ function tabletop:move()
         for x = 1, 4 do
             local col = {}
             for y = 1, 4 do table.insert(col, self.table[y][x]) end
-            local result = slide_line(col)
+            local result = slide_line(self, col)
             for y = 1, 4 do self.table[y][x] = result[y] end
         end
     elseif self.direction == "down" then
         for x = 1, 4 do
             local col = {}
             for y = 4, 1, -1 do table.insert(col, self.table[y][x]) end
-            local result = slide_line(col)
+            local result = slide_line(self, col)
             for y = 1, 4 do self.table[5 - y][x] = result[y] end
         end
     end
@@ -133,8 +137,11 @@ function tabletop:move()
     for y = 1, 4 do
         for x = 1, 4 do
             if self.table[y][x] ~= old_table[y][x] then
+                if self.score > self.high_score then
+                    self.high_score = self.score
+                end
                 self:generate_random_tile()
-                save.save(self.table)
+                save.save({table = self.table, score = self.score, high_score = self.high_score})
                 return true
             end
         end
@@ -164,6 +171,7 @@ function tabletop:reset()
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     }
+    self.score = 0
 
     self:generate_random_tile()
     self:generate_random_tile()
@@ -201,6 +209,11 @@ function tabletop:draw_cell(x, y)
     lui.graphics.draw("n: New Game", 1, h - 1)
     lui.colors.set(255, 34, 34, "background")
     lui.graphics.draw("q: Quit", 1, h)
+    local score_len = string.len(self.score)
+    lui.colors.set(127, 127, 127, "background")
+    lui.graphics.draw("Score: " .. self.score, w - 6 - score_len, h - 1)
+    local high_score_len = string.len(self.high_score)
+    lui.graphics.draw("Highscore: " .. self.high_score, w - 10 - high_score_len, h)
     lui.colors.reset()
 end
 

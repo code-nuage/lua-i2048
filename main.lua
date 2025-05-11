@@ -2,9 +2,10 @@ require("./lui/init")
 
 local tabletop = require("./modules/tabletop")
 local save = require("./modules/save")
+local game
 
 local saved_game = save.load()
-local game = tabletop:new(saved_game)
+game = tabletop:new(saved_game)
 
 function lui.load()
 
